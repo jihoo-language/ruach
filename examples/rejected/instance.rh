@@ -1,0 +1,9 @@
+// error: `+` works on Int and Float, not on Bool (in this instance)
+// Operators in generic code are checked for each type the code is used at.
+
+fn add(x, y) = x + y
+
+fn main() {
+  println(add(1, 2))
+  println(add(true, false))
+}

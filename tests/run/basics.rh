@@ -1,0 +1,33 @@
+type Shape =
+  | Circle(Float)
+  | Rect(Float, Float)
+
+type Point = { x: Float, y: Float }
+
+fn area(s: Shape) -> Float =
+  match s {
+    Circle(r) => 3.0 * r * r
+    Rect(w, h) => w * h
+  }
+
+fn fib(n) = if n < 2 { n } else { fib(n - 1) + fib(n - 2) }
+
+fn main() {
+  println("hello, ruach")
+  println(fib(20))
+  let shapes = [Circle(1.0), Rect(2.0, 3.5)]
+  println(shapes.map(area))
+  let p = Point { x: 1.0, y: 2.0 }
+  let q = Point { y: 5.0, ..p }
+  println(q)
+  println(range(0, 10).filter(fn(x) => x % 2 == 0).map(fn(x) => x * x).sum())
+  let words = "the quick brown fox".split(" ")
+  println(words)
+  println(words.sort())
+  println([5, 3, 9, 1, 7, 2, 8, 6, 4, 0, 11, 15, 13, 12, 14, 10, 19, 17, 18, 16].sort())
+  println(Some(3).map(fn(x) => x + 1))
+  println("42".to_int())
+  println((1, "a", true))
+  let xs = [1, 2, 3].to_list()
+  println(xs.map(fn(x) => x * 10).reverse())
+}

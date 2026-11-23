@@ -1,0 +1,17 @@
+// Sorts five million pseudo-random integers with the prelude's quicksort.
+
+fn fill(a: Array[Int], i: Int, seed: Int) -> Array[Int] =
+  if i >= a.len() { a }
+  else {
+    let s = (seed * 1103515245 + 12345) % 2147483648
+    fill(a.set(i, s), i + 1, s)
+  }
+
+fn sorted(a: Array[Int], i: Int) -> Bool = i + 1 >= a.len() || (a[i] <= a[i + 1] && sorted(a, i + 1))
+
+fn main() {
+  let a = fill(Array.make(5_000_000, 0), 0, 42).sort()
+  println(sorted(a, 0))
+  println(a[0])
+  println(a[a.len() - 1])
+}

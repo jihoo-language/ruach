@@ -1,0 +1,6 @@
+// error: there is no method `push` for String
+// Methods are found by the type of the receiver.
+
+fn main() {
+  println("abc".push("d"))
+}

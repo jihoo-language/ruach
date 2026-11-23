@@ -1,0 +1,125 @@
+type Expr =
+  | Num(Int)
+  | Add(Expr, Expr)
+  | Mul(Expr, Expr)
+  | Neg(Expr)
+  | Var(String)
+
+type Person = { name: String, age: Int, tags: Array[String] }
+
+type Tree[k, v] = Leaf | Node(Tree[k, v], k, v, Tree[k, v])
+
+fn insert(t: Tree[k, v], key: k, val: v) -> Tree[k, v] =
+  match t {
+    Leaf => Node(Leaf, key, val, Leaf)
+    Node(l, k2, v2, r) =>
+      if key < k2 { Node(insert(l, key, val), k2, v2, r) }
+      else if key > k2 { Node(l, k2, v2, insert(r, key, val)) }
+      else { Node(l, key, val, r) }
+  }
+
+fn lookup(t: Tree[k, v], key: k) -> Option[v] =
+  match t {
+    Leaf => None
+    Node(l, k2, v2, r) =>
+      if key < k2 { lookup(l, key) } else if key > k2 { lookup(r, key) } else { Some(v2) }
+  }
+
+fn to_pairs(t: Tree[k, v], acc: Array[(k, v)]) -> Array[(k, v)] =
+  match t {
+    Leaf => acc
+    Node(l, k, v, r) => to_pairs(r, to_pairs(l, acc).push((k, v)))
+  }
+
+fn simplify(e: Expr) -> Expr =
+  match e {
+    Add(Num(0), x) => simplify(x)
+    Add(x, Num(0)) => simplify(x)
+    Mul(Num(1), x) => simplify(x)
+    Mul(x, Num(1)) => simplify(x)
+    Mul(Num(0), _) => Num(0)
+    Neg(Neg(x)) => simplify(x)
+    Add(a, b) => Add(simplify(a), simplify(b))
+    Mul(a, b) => Mul(simplify(a), simplify(b))
+    Neg(a) => Neg(simplify(a))
+    other => other
+  }
+
+fn eval(e: Expr, env: (String) -> Int) -> Int =
+  match e {
+    Num(n) => n
+    Add(a, b) => eval(a, env) + eval(b, env)
+    Mul(a, b) => eval(a, env) * eval(b, env)
+    Neg(a) => -eval(a, env)
+    Var(name) => env(name)
+  }
+
+fn render(e: Expr) -> String =
+  match e {
+    Num(n) if n < 0 => "(" ++ show(n) ++ ")"
+    Num(n) => show(n)
+    Add(a, b) => "(" ++ render(a) ++ " + " ++ render(b) ++ ")"
+    Mul(a, b) => render(a) ++ " * " ++ render(b)
+    Neg(a) => "-" ++ render(a)
+    Var(v) => v
+  }
+
+fn make_counter(start: Int) -> (Int) -> (Int, String) = {
+  let label = "count:" ++ show(start)
+  fn(k) => (start + k, label)
+}
+
+fn compose(f: (a) -> b, g: (b) -> c) -> (a) -> c = fn(x) => g(f(x))
+
+fn split_pair(xs: Array[Int]) -> (Array[Int], Array[Int]) =
+  (xs.filter(fn(x) => x % 2 == 0), xs.filter(fn(x) => x % 2 == 1))
+
+fn main() {
+  let e = Add(Mul(Num(1), Var("x")), Add(Num(0), Neg(Neg(Num(5)))))
+  let s = simplify(e)
+  println(render(e))
+  println(render(s))
+  let env = fn(name: String) => if name == "x" { 10 } else { 0 }
+  println(eval(e, env))
+  println(s)
+
+  let people = [
+    Person { name: "Ada", age: 36, tags: ["math", "engines"] },
+    Person { name: "Grace", age: 85, tags: ["cobol"] },
+    Person { name: "Alan", age: 41, tags: [] },
+  ]
+  let older = people.map(fn(p) => Person { age: p.age + 1, ..p })
+  println(older[1])
+  let names = people.sort_by(fn(a, b) => compare(a.name, b.name)).map(fn(p) => p.name)
+  println(names.join(", "))
+  println(people.map(fn(p) => p.tags.len()).sum())
+
+  let t = ["pear", "apple", "fig", "kiwi", "apple"].enumerate().fold(Leaf, fn(acc, p) => {
+    let (i, w) = p
+    insert(acc, w, i)
+  })
+  println(lookup(t, "apple"))
+  println(lookup(t, "plum"))
+  println(to_pairs(t, []))
+
+  let c = make_counter(7)
+  println(c(3))
+  let h = compose(fn(x: Int) => x * 2, fn(y) => show(y) ++ "!")
+  println(h(21))
+  let (evens, odds) = split_pair(range(0, 10))
+  println(evens ++ odds)
+  let grid = Array.make(3, Array.make(3, 0))
+  let grid = grid.set(1, grid[1].set(1, 5))
+  println(grid)
+  println("a,b,,c".split(","))
+  println("  padded  ".trim().pad_left(8) ++ "|")
+  println(match (1, "x") { (0, _) => "zero", (n, s) => s.repeat(n + 2) })
+  let fs = [fn(x) => x + 1, fn(x) => x * 10]
+  println(fs.map(fn(f) => f(4)))
+  println([Some(1), None, Some(3)].map(fn(o) => o.unwrap_or(-1)))
+  println([1.5, 2.25].map(Float.sqrt))
+  println([3, 1, 2].map(Some))
+  println(1.0 / 3.0)
+  println(-7 / 2)
+  println(-7 % 2)
+}

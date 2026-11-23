@@ -1,0 +1,11 @@
+[package]
+name = "ruach"
+version = "0.1.0"
+edition = "2021"
+description = "Compiler for Ruach, a functional general-purpose language that compiles to C"
+license = "Apache-2.0"
+
+[dependencies]
+
+[profile.release]
+debug = false

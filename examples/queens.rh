@@ -1,0 +1,40 @@
+// Counts the solutions of the N-queens problem by backtracking over
+// immutable lists, and prints the first solution for eight queens.
+
+fn safe(col: Int, placed: List[Int], dist: Int) -> Bool =
+  match placed {
+    Nil => true
+    Cons(c, rest) => c != col && Int.abs(c - col) != dist && safe(col, rest, dist + 1)
+  }
+
+fn count(n: Int, row: Int, placed: List[Int]) -> Int =
+  if row == n { 1 } else { tries(n, row, placed, 0, 0) }
+
+fn tries(n: Int, row: Int, placed: List[Int], col: Int, acc: Int) -> Int =
+  if col == n { acc }
+  else if safe(col, placed, 1) { tries(n, row, placed, col + 1, acc + count(n, row + 1, Cons(col, placed))) }
+  else { tries(n, row, placed, col + 1, acc) }
+
+fn first(n: Int, row: Int, placed: List[Int]) -> Option[List[Int]] =
+  if row == n { Some(placed) } else { first_from(n, row, placed, 0) }
+
+fn first_from(n: Int, row: Int, placed: List[Int], col: Int) -> Option[List[Int]] =
+  if col == n { None }
+  else if !safe(col, placed, 1) { first_from(n, row, placed, col + 1) }
+  else {
+    match first(n, row + 1, Cons(col, placed)) {
+      Some(s) => Some(s)
+      None => first_from(n, row, placed, col + 1)
+    }
+  }
+
+fn draw(cols: Array[Int]) -> () =
+  cols.each(fn(c) => println(Array.init(cols.len(), fn(i) => if i == c { "Q" } else { "." }).join(" ")))
+
+fn main() {
+  range(4, 11).each(fn(n) => println(show(n) ++ " queens: " ++ show(count(n, 0, Nil))))
+  match first(8, 0, Nil) {
+    Some(s) => draw(s.reverse().to_array())
+    None => println("no solution")
+  }
+}

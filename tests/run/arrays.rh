@@ -1,0 +1,32 @@
+fn fill(a: Array[Int], i: Int) -> Array[Int] = if i >= a.len() { a } else { fill(a.set(i, i * i), i + 1) }
+
+fn main() {
+  let a = fill(Array.make(10, 0), 0)
+  println(a)
+  let b = a.set(0, 100)
+  // `a` is still used, so `set` copied it.
+  println(a[0])
+  println(b[0])
+  println(a.slice(2, 5) ++ [7, 8])
+  println(a.reverse())
+  println(a.pop().len())
+  println(a.swap(0, 9)[0])
+  println([3, 1, 2].sort() == [1, 2, 3])
+  println([[1, 2], [3]] == [[1, 2], [3]])
+  println([(2, "b"), (1, "z"), (2, "a")].sort_by(fn(x, y) => compare(x.0, y.0)))
+  println(range(0, 5).zip(["a", "b", "c"]))
+  println(["x", "y"].enumerate())
+  println([1, 2, 3].flat_map(fn(n) => Array.make(n, n)))
+  println([1, 2, 3].all(fn(n) => n > 0) && !([1, 2, 3].any(fn(n) => n > 5)))
+  println([4, 5, 6].contains(5))
+  println(Array.init(5, fn(i) => i * 10).last())
+  println(Array.empty().first() == Some(1))
+  let grid = Array.make(2, Array.make(2, "."))
+  println(grid.set(0, grid[0].set(1, "#")))
+  // A million updates in place: linear, not quadratic.
+  let big = fill(Array.make(1_000_000, 0), 0)
+  println(big[999_999])
+  let words = ["pear", "fig", "apple", "kiwi", "banana", "cherry", "date", "elderberry", "grape",
+    "honeydew", "lemon", "mango", "nectarine", "orange", "papaya", "quince", "raspberry", "lime"]
+  println(words.sort())
+}

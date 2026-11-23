@@ -1,0 +1,10 @@
+// error: this arm can never match: earlier arms cover it
+
+fn sign(n: Int) -> String =
+  match n {
+    0 => "zero"
+    _ => "nonzero"
+    1 => "one"
+  }
+
+fn main() {}

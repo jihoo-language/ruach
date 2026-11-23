@@ -1,0 +1,28 @@
+fn check(m: Map[Int, Int], lo: Int, hi: Int) -> Bool =
+  match m {
+    MapLeaf => true
+    MapNode(l, k, _, r, h) =>
+      lo <= k && k <= hi
+        && Int.abs(__height(l) - __height(r)) <= 1
+        && h == 1 + Int.max(__height(l), __height(r))
+        && check(l, lo, k - 1) && check(r, k + 1, hi)
+  }
+
+fn main() {
+  let m = Map.from_array([("one", 1), ("two", 2), ("three", 3)])
+  println(m.get("two"))
+  println(m.get("four"))
+  println(m.insert("four", 4).remove("one").to_array())
+  println(m.len())
+  println(m.keys())
+  println(m.update("one", 0, fn(x) => x + 100).values())
+  println(m.fold(0, fn(acc, k, v) => acc + k.len() * v))
+  let big = range(0, 100000).fold(Map.empty(), fn(acc, i) => acc.insert((i * 7919) % 100003, i))
+  println(big.len())
+  println(check(big, 0, 100003))
+  let fewer = range(0, 50000).fold(big, fn(acc, i) => acc.remove((i * 7919) % 100003))
+  println(fewer.len())
+  println(check(fewer, 0, 100003))
+  println(fewer.contains((70000 * 7919) % 100003) && !fewer.contains(7919))
+  println(Map.empty().insert(2.5, "x").is_empty())
+}

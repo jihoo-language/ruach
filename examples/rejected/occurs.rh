@@ -1,0 +1,5 @@
+// error: (the type would contain itself)
+
+fn main() {
+  let f = fn(x) => x(x)
+}

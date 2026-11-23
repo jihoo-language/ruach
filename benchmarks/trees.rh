@@ -1,0 +1,29 @@
+// Allocates and frees binary trees: the binary-trees benchmark, depth 20.
+
+type Tree = Leaf | Node(Tree, Tree)
+
+fn make(d: Int) -> Tree = if d == 0 { Node(Leaf, Leaf) } else { Node(make(d - 1), make(d - 1)) }
+
+fn check(t: Tree) -> Int =
+  match t {
+    Leaf => 0
+    Node(l, r) => 1 + check(l) + check(r)
+  }
+
+fn iterate(k: Int, d: Int, acc: Int) -> Int =
+  if k == 0 { acc } else { iterate(k - 1, d, acc + check(make(d))) }
+
+fn depths(d: Int, max: Int) -> () =
+  if d <= max {
+    let n = Int.shl(1, max - d + 4)
+    println(show(n) ++ " trees of depth " ++ show(d) ++ " check: " ++ show(iterate(n, d, 0)))
+    depths(d + 2, max)
+  }
+
+fn main() {
+  let max = 20
+  println("stretch tree of depth " ++ show(max + 1) ++ " check: " ++ show(check(make(max + 1))))
+  let long = make(max)
+  depths(4, max)
+  println("long lived tree of depth " ++ show(max) ++ " check: " ++ show(check(long)))
+}

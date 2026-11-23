@@ -1,0 +1,6 @@
+// error: the type variable `a` stands for any type, but the body needs it to be Int
+// A type variable in a signature promises that the function works for every type.
+
+fn id(x: a) -> a = x + 1
+
+fn main() {}

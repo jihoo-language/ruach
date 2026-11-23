@@ -1,0 +1,25 @@
+// Counts the primes below 50 million, five times. The array is never
+// shared, so every `set` writes in place.
+
+fn cross(a: Array[Bool], j: Int, step: Int, n: Int) -> Array[Bool] =
+  if j >= n { a } else { cross(a.set(j, false), j + step, step, n) }
+
+fn sieve(a: Array[Bool], i: Int, n: Int) -> Array[Bool] =
+  if i * i >= n { a }
+  else if a[i] { sieve(cross(a, i * i, i, n), i + 1, n) }
+  else { sieve(a, i + 1, n) }
+
+fn count(a: Array[Bool], i: Int, acc: Int) -> Int =
+  if i >= a.len() { acc } else { count(a, i + 1, if a[i] { acc + 1 } else { acc }) }
+
+fn run(round: Int, total: Int) -> Int =
+  if round == 0 { total }
+  else {
+    let n = 50_000_000
+    let a = sieve(Array.make(n, true).set(0, false).set(1, false), 2, n)
+    run(round - 1, total + count(a, 0, 0))
+  }
+
+fn main() {
+  println(run(5, 0))
+}

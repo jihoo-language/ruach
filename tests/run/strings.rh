@@ -1,0 +1,26 @@
+fn main() {
+  let s = "Hello, world"
+  println(s.len())
+  println(s.slice(7, 12))
+  println(s.find("world"))
+  println(s.find("moon"))
+  println(s.contains("lo, w"))
+  println(s.starts_with("Hell") && s.ends_with("ld"))
+  println("a-b-c".split("-").join("+"))
+  println("line one\nline two\n".lines())
+  println("  many   spaces here ".words())
+  println("ab".repeat(3))
+  println("x".pad_left(3) ++ "|" ++ "y".pad_right(3) ++ "|")
+  println(["12", "-7", "x", "", "9223372036854775807", "9223372036854775808"].map(fn(t) => t.to_int()))
+  println(["1.5", "2e3", "nope"].map(fn(t) => t.to_float()))
+  println("tab\there \"quoted\"")
+  println(show("tab\there"))
+  println("Zebra" < "apple")
+  println(compare("b", "a") + compare(1, 2) + compare(2.5, 2.5))
+  println(String.from_byte('A') ++ String.from_byte(10 * 10))
+  println("abc".bytes())
+  println(show(12) ++ show(-0.5) ++ show(true) ++ show(()))
+  println(3.0.format(2) ++ " " ++ 2.0.pow(0.5).format(4))
+  // Building a string in a loop appends in place.
+  println(range(0, 100000).fold("", fn(acc, i) => acc ++ "x").len())
+}

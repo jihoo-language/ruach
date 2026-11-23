@@ -1,0 +1,32 @@
+type Counter = { step: Int, apply: (Int) -> Int }
+
+fn adder(n: Int) -> (Int) -> Int = fn(x) => x + n
+
+fn compose(f: (a) -> b, g: (b) -> c) -> (a) -> c = fn(x) => g(f(x))
+
+fn repeat(f: (a) -> a, n: Int) -> (a) -> a =
+  if n == 0 { fn(x) => x } else { compose(f, repeat(f, n - 1)) }
+
+fn curry(f: (a, b) -> c) -> (a) -> (b) -> c = fn(x) => fn(y) => f(x, y)
+
+fn main() {
+  let add5 = adder(5)
+  println(add5(10))
+  println(repeat(adder(3), 4)(0))
+  println(repeat(fn(s) => s ++ "!", 3)("hey"))
+  let c = Counter { step: 2, apply: fn(x) => x * 2 }
+  println(c.apply(c.step))
+  let pow = curry(fn(b: Float, e: Float) => b.pow(e))
+  println(pow(2.0)(10.0))
+  let names = ["a", "b"]
+  let tagged = [1, 2].map(fn(n) => names.map(fn(s) => s ++ show(n)))
+  println(tagged)
+  let fs = range(0, 3).map(fn(i) => fn(x) => x * i)
+  println(fs.map(fn(f) => f(7)))
+  println([1, 2, 3].map(Int.to_string).join(""))
+  println([1, 2].map(Some).map(fn(o) => o.map(fn(x) => x + 1)))
+  println([Ok(1), Err("no")].map(fn(r) => r.unwrap_or(0)))
+  let nested = fn(x) => fn(y) => fn(z) => x + y + z
+  println(nested(1)(2)(3))
+  println(show(add5).len() > 0)
+}

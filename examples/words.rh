@@ -1,0 +1,41 @@
+// Counts the words on standard input in a persistent map (the prelude's
+// AVL tree) and prints the most frequent ones.
+//
+//   ruach run examples/words.rh < README.md
+
+fn lower(c: Int) -> Int = if c >= 'A' && c <= 'Z' { c + 32 } else { c }
+fn letter(c: Int) -> Bool = (c >= 'a' && c <= 'z') || c == '\''
+
+// Splits a line into lowercase words.
+fn words(line: String, i: Int, start: Int, acc: Array[String]) -> Array[String] =
+  if i > line.len() { acc }
+  else if i < line.len() && letter(lower(line.byte(i))) { words(line, i + 1, start, acc) }
+  else {
+    let acc = if i > start { acc.push(lowercase(line.slice(start, i))) } else { acc }
+    words(line, i + 1, i + 1, acc)
+  }
+
+fn lowercase(s: String) -> String = s.bytes().map(fn(c) => String.from_byte(lower(c))).join("")
+
+fn count(m: Map[String, Int], n: Int) -> (Map[String, Int], Int) =
+  match read_line() {
+    None => (m, n)
+    Some(line) => {
+      let ws = words(line, 0, 0, [])
+      count(ws.fold(m, fn(acc, w) => acc.update(w, 1, fn(c) => c + 1)), n + ws.len())
+    }
+  }
+
+fn main() {
+  let (m, total) = count(Map.empty(), 0)
+  let ranked = m.to_array().sort_by(fn(a, b) => {
+    let (wa, ca) = a
+    let (wb, cb) = b
+    if ca != cb { compare(cb, ca) } else { compare(wa, wb) }
+  })
+  println(show(total) ++ " words, " ++ show(ranked.len()) ++ " different")
+  ranked.slice(0, 10).each(fn(p) => {
+    let (w, c) = p
+    println(show(c).pad_left(6) ++ "  " ++ w)
+  })
+}

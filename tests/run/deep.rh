@@ -1,0 +1,8 @@
+fn build(n: Int, acc: List[Int]) -> List[Int] = if n == 0 { acc } else { build(n - 1, Cons(n, acc)) }
+
+fn main() {
+  let xs = build(3_000_000, Nil)
+  let ys = xs.map(fn(x) => x * 2)
+  println(ys.fold(0, fn(a, b) => a + b))
+  println(xs.len())
+}

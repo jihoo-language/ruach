@@ -1,0 +1,160 @@
+// A calculator: tokenizes, parses and evaluates arithmetic with `let`.
+// Errors are values of type Result, not exceptions.
+//
+//   ruach run examples/calc.rh -- "let x = 4 in x * (x + 1)"
+
+type Token =
+  | TNum(Float)
+  | TIdent(String)
+  | TOp(Int)        // one of + - * / ( ) =, by its byte
+  | TLet
+  | TIn
+
+type Expr =
+  | Num(Float)
+  | Var(String)
+  | Bin(Int, Expr, Expr)
+  | Neg(Expr)
+  | Let(String, Expr, Expr)
+
+fn is_digit(c: Int) -> Bool = c >= '0' && c <= '9'
+fn is_alpha(c: Int) -> Bool = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+
+// --------------------------------------------------------------- lexing
+
+fn lex(s: String, i: Int, out: Array[Token]) -> Result[Array[Token], String] =
+  if i >= s.len() { Ok(out) }
+  else {
+    let c = s.byte(i)
+    if c == ' ' { lex(s, i + 1, out) }
+    else if is_digit(c) {
+      let j = span(s, i, fn(c) => is_digit(c) || c == '.')
+      match s.slice(i, j).to_float() {
+        Some(f) => lex(s, j, out.push(TNum(f)))
+        None => Err("bad number " ++ s.slice(i, j))
+      }
+    }
+    else if is_alpha(c) {
+      let j = span(s, i, fn(c) => is_alpha(c) || is_digit(c))
+      let word = s.slice(i, j)
+      let tok = match word { "let" => TLet, "in" => TIn, w => TIdent(w) }
+      lex(s, j, out.push(tok))
+    }
+    else if "+-*/()=".contains(String.from_byte(c)) { lex(s, i + 1, out.push(TOp(c))) }
+    else { Err("unexpected `" ++ String.from_byte(c) ++ "` at " ++ show(i)) }
+  }
+
+fn span(s: String, i: Int, ok: (Int) -> Bool) -> Int =
+  if i < s.len() && ok(s.byte(i)) { span(s, i + 1, ok) } else { i }
+
+// -------------------------------------------------------------- parsing
+
+// A parser takes the tokens and a position, and returns a value and the
+// next position.
+type Parsed = { expr: Expr, next: Int }
+
+fn peek(ts: Array[Token], i: Int) -> Option[Token] = if i < ts.len() { Some(ts[i]) } else { None }
+
+fn expect(ts: Array[Token], i: Int, op: Int) -> Result[Int, String] =
+  match peek(ts, i) {
+    Some(TOp(c)) if c == op => Ok(i + 1)
+    _ => Err("expected `" ++ String.from_byte(op) ++ "` at token " ++ show(i))
+  }
+
+fn expr(ts: Array[Token], i: Int) -> Result[Parsed, String] =
+  match peek(ts, i) {
+    Some(TLet) => match peek(ts, i + 1) {
+      Some(TIdent(name)) =>
+        expect(ts, i + 2, '=').and_then(fn(j) =>
+          expr(ts, j).and_then(fn(bound) =>
+            match peek(ts, bound.next) {
+              Some(TIn) => expr(ts, bound.next + 1).map(fn(body) =>
+                Parsed { expr: Let(name, bound.expr, body.expr), next: body.next })
+              _ => Err("expected `in`")
+            }))
+      _ => Err("expected a name after `let`")
+    }
+    _ => sum(ts, i)
+  }
+
+fn sum(ts: Array[Token], i: Int) -> Result[Parsed, String] =
+  term(ts, i).and_then(fn(l) => sum_rest(ts, l))
+
+fn sum_rest(ts: Array[Token], l: Parsed) -> Result[Parsed, String] =
+  match peek(ts, l.next) {
+    Some(TOp(c)) if c == '+' || c == '-' =>
+      term(ts, l.next + 1).and_then(fn(r) => sum_rest(ts, Parsed { expr: Bin(c, l.expr, r.expr), next: r.next }))
+    _ => Ok(l)
+  }
+
+fn term(ts: Array[Token], i: Int) -> Result[Parsed, String] =
+  unary(ts, i).and_then(fn(l) => term_rest(ts, l))
+
+fn term_rest(ts: Array[Token], l: Parsed) -> Result[Parsed, String] =
+  match peek(ts, l.next) {
+    Some(TOp(c)) if c == '*' || c == '/' =>
+      unary(ts, l.next + 1).and_then(fn(r) => term_rest(ts, Parsed { expr: Bin(c, l.expr, r.expr), next: r.next }))
+    _ => Ok(l)
+  }
+
+fn unary(ts: Array[Token], i: Int) -> Result[Parsed, String] =
+  match peek(ts, i) {
+    Some(TOp('-')) => unary(ts, i + 1).map(fn(p) => Parsed { expr: Neg(p.expr), ..p })
+    Some(TNum(f)) => Ok(Parsed { expr: Num(f), next: i + 1 })
+    Some(TIdent(v)) => Ok(Parsed { expr: Var(v), next: i + 1 })
+    Some(TOp('(')) => expr(ts, i + 1).and_then(fn(p) =>
+      expect(ts, p.next, ')').map(fn(j) => Parsed { expr: p.expr, next: j }))
+    Some(t) => Err("unexpected token " ++ show(t))
+    None => Err("unexpected end of input")
+  }
+
+fn parse(s: String) -> Result[Expr, String] =
+  lex(s, 0, []).and_then(fn(ts) =>
+    expr(ts, 0).and_then(fn(p) =>
+      if p.next == ts.len() { Ok(p.expr) } else { Err("trailing input at token " ++ show(p.next)) }))
+
+// ----------------------------------------------------------- evaluation
+
+fn eval(e: Expr, env: List[(String, Float)]) -> Result[Float, String] =
+  match e {
+    Num(f) => Ok(f)
+    Var(v) => lookup(env, v)
+    Neg(a) => eval(a, env).map(fn(x) => -x)
+    Let(name, bound, body) => eval(bound, env).and_then(fn(x) => eval(body, Cons((name, x), env)))
+    Bin(op, a, b) => eval(a, env).and_then(fn(x) => eval(b, env).and_then(fn(y) =>
+      match op {
+        '+' => Ok(x + y)
+        '-' => Ok(x - y)
+        '*' => Ok(x * y)
+        _ => if y == 0.0 { Err("division by zero") } else { Ok(x / y) }
+      }))
+  }
+
+fn lookup(env: List[(String, Float)], v: String) -> Result[Float, String] =
+  match env {
+    Nil => Err("unknown variable " ++ v)
+    Cons((name, x), rest) => if name == v { Ok(x) } else { lookup(rest, v) }
+  }
+
+fn run(src: String) -> () =
+  match parse(src).and_then(fn(e) => eval(e, Nil)) {
+    Ok(x) => println(src ++ " = " ++ show(x))
+    Err(msg) => println(src ++ ": error: " ++ msg)
+  }
+
+fn main() {
+  let given = args()
+  if given.len() > 1 {
+    given.slice(1, given.len()).each(run)
+  } else {
+    run("1 + 2 * 3")
+    run("(1 + 2) * 3")
+    run("let x = 4 in x * (x + 1)")
+    run("let r = 2 in let pi = 3.14159 in pi * r * r")
+    run("-(2 - 10) / 4")
+    run("1 / (3 - 3)")
+    run("2 * y")
+    run("(1 + 2")
+    run("3 $ 4")
+  }
+}

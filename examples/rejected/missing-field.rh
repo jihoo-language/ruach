@@ -1,0 +1,7 @@
+// error: missing field y
+
+type Point = { x: Float, y: Float }
+
+fn main() {
+  let p = Point { x: 1.0 }
+}

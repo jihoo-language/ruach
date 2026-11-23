@@ -1,0 +1,86 @@
+// A tour of Ruach: variants, records, pattern matching, closures,
+// pipelines, methods and type inference.
+
+// A variant type. Constructors are capitalized and global.
+type Shape =
+  | Circle(Float)
+  | Rect(Float, Float)
+  | Triangle(Float, Float, Float)
+
+// A record type. Records are values: copying one copies its fields.
+type Item = { name: String, price: Int, qty: Int }
+
+// Functions in `Shape.` are methods: `s.area()` finds `Shape.area`
+// from the type of `s`.
+fn Shape.area(s: Shape) -> Float =
+  match s {
+    Circle(r) => 3.141592653589793 * r * r
+    Rect(w, h) => w * h
+    Triangle(a, b, c) => {
+      let p = (a + b + c) / 2.0
+      Float.sqrt(p * (p - a) * (p - b) * (p - c))
+    }
+  }
+
+// Types are inferred: this is (Array[Item]) -> Int, because only Item has
+// a field `price`. (A method call such as `items.fold` would need the type
+// of `items` first, so this calls `Array.fold` by its full name.)
+fn total(items) = Array.fold(items, 0, fn(acc, it) => acc + it.price * it.qty)
+
+// A generic function, written once and compiled for every type it is used at.
+fn twice(f: (a) -> a, x: a) -> a = f(f(x))
+
+// Self tail calls compile to loops.
+fn gcd(a: Int, b: Int) -> Int = if b == 0 { a } else { gcd(b, a % b) }
+
+fn collatz(n: Int, steps: Int) -> Int =
+  match n {
+    1 => steps
+    n if n % 2 == 0 => collatz(n / 2, steps + 1)
+    n => collatz(3 * n + 1, steps + 1)
+  }
+
+fn main() {
+  let shapes = [Circle(1.0), Rect(3.0, 4.0), Triangle(3.0, 4.0, 5.0)]
+  shapes.each(fn(s) => println(show(s) ++ " has area " ++ s.area().format(3)))
+
+  let cart = [
+    Item { name: "tea", price: 450, qty: 2 },
+    Item { name: "bread", price: 300, qty: 1 },
+    Item { name: "honey", price: 1200, qty: 1 },
+  ]
+  println("total: " ++ show(total(cart)))
+  // `{ field: value, ..base }` makes a changed copy.
+  let sale = cart.map(fn(it) => Item { price: it.price * 9 / 10, ..it })
+  println("on sale: " ++ show(total(sale)))
+  println(sale[2])
+
+  // `x |> f(a)` is `f(x, a)`.
+  let evens = range(1, 21)
+    |> Array.filter(fn(n) => n % 2 == 0)
+    |> Array.map(fn(n) => n * n)
+  println(evens)
+  println(evens.sum())
+
+  println(twice(fn(x) => x * 3, 7))
+  println(twice(fn(s) => s ++ s, "ab"))
+  println(gcd(1071, 462))
+  println(collatz(27, 0))
+
+  // Tuples and destructuring.
+  let (q, r) = (17 / 5, 17 % 5)
+  println("17 = 5 * " ++ show(q) ++ " + " ++ show(r))
+
+  // Option instead of null.
+  let found = cart.find(fn(it) => it.price > 1000)
+  match found {
+    Some(it) => println("expensive: " ++ it.name)
+    None => println("nothing expensive")
+  }
+  println("12x".to_int().unwrap_or(-1))
+
+  // Closures capture what they use.
+  let greeting = "hi"
+  let greet = fn(name) => greeting ++ ", " ++ name
+  println(["Ada", "Alan"].map(greet).join("; "))
+}

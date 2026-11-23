@@ -1,0 +1,30 @@
+type Vec2 = { x: Float, y: Float }
+type Particle = { name: String, pos: Vec2, vel: Vec2, trail: Array[Vec2] }
+type Pair[a, b] = { first: a, second: b }
+
+fn Vec2.add(a: Vec2, b: Vec2) -> Vec2 = Vec2 { x: a.x + b.x, y: a.y + b.y }
+
+fn step(p: Particle) -> Particle =
+  Particle { pos: p.pos.add(p.vel), trail: p.trail.push(p.pos), ..p }
+
+fn swap(p: Pair[a, b]) -> Pair[b, a] = Pair { first: p.second, second: p.first }
+
+fn steps(p: Particle, n: Int) -> Particle = if n == 0 { p } else { steps(step(p), n - 1) }
+
+fn main() {
+  let p = Particle { name: "dust", pos: Vec2 { x: 0.0, y: 0.0 }, vel: Vec2 { x: 1.0, y: 0.5 }, trail: [] }
+  let q = steps(p, 3)
+  println(q.pos)
+  println(q.trail.len())
+  println(p.trail.len())
+  println(q.name)
+  println(swap(Pair { first: 1, second: "one" }))
+  let Pair { first, second } = Pair { first: [1, 2], second: (true, 'z') }
+  println(first.len())
+  println(second.1)
+  match q {
+    Particle { pos: Vec2 { x, y }, name, .. } if x > 2.0 => println(name ++ " at " ++ show(x) ++ "," ++ show(y))
+    _ => println("elsewhere")
+  }
+  println(Vec2 { x: 1.0, y: 2.0 } == Vec2 { y: 2.0, x: 1.0 })
+}

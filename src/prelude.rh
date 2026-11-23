@@ -1,0 +1,447 @@
+// The Ruach prelude: loaded before every program.
+
+type Option[a] = None | Some(a)
+type Result[a, e] = Ok(a) | Err(e)
+type List[a] = Nil | Cons(a, List[a])
+
+// ---------------------------------------------------------------- Option
+
+fn Option.is_some(o: Option[a]) -> Bool = match o { Some(_) => true, None => false }
+fn Option.is_none(o: Option[a]) -> Bool = match o { Some(_) => false, None => true }
+
+fn Option.unwrap(o: Option[a]) -> a =
+  match o {
+    Some(x) => x
+    None => panic("unwrap of None")
+  }
+
+fn Option.unwrap_or(o: Option[a], default: a) -> a =
+  match o {
+    Some(x) => x
+    None => default
+  }
+
+fn Option.map(o: Option[a], f: (a) -> b) -> Option[b] =
+  match o {
+    Some(x) => Some(f(x))
+    None => None
+  }
+
+fn Option.and_then(o: Option[a], f: (a) -> Option[b]) -> Option[b] =
+  match o {
+    Some(x) => f(x)
+    None => None
+  }
+
+// ---------------------------------------------------------------- Result
+
+fn Result.is_ok(r: Result[a, e]) -> Bool = match r { Ok(_) => true, Err(_) => false }
+
+fn Result.unwrap(r: Result[a, e]) -> a =
+  match r {
+    Ok(x) => x
+    Err(e) => panic("unwrap of Err(" ++ show(e) ++ ")")
+  }
+
+fn Result.unwrap_or(r: Result[a, e], default: a) -> a =
+  match r {
+    Ok(x) => x
+    Err(_) => default
+  }
+
+fn Result.map(r: Result[a, e], f: (a) -> b) -> Result[b, e] =
+  match r {
+    Ok(x) => Ok(f(x))
+    Err(e) => Err(e)
+  }
+
+fn Result.and_then(r: Result[a, e], f: (a) -> Result[b, e]) -> Result[b, e] =
+  match r {
+    Ok(x) => f(x)
+    Err(e) => Err(e)
+  }
+
+// ----------------------------------------------------------------- numbers
+
+fn Int.abs(n: Int) -> Int = if n < 0 { -n } else { n }
+fn Int.min(a: Int, b: Int) -> Int = if a < b { a } else { b }
+fn Int.max(a: Int, b: Int) -> Int = if a > b { a } else { b }
+fn Int.to_string(n: Int) -> String = show(n)
+fn Float.min(a: Float, b: Float) -> Float = if a < b { a } else { b }
+fn Float.max(a: Float, b: Float) -> Float = if a > b { a } else { b }
+fn Float.to_string(x: Float) -> String = show(x)
+
+fn assert(ok: Bool, msg: String) -> () = if !ok { panic("assertion failed: " ++ msg) }
+
+// ----------------------------------------------------------------- strings
+
+fn String.is_empty(s: String) -> Bool = s.len() == 0
+
+fn String.find(s: String, t: String) -> Option[Int] = {
+  let i = s.__find(t, 0)
+  if i < 0 { None } else { Some(i) }
+}
+
+fn String.contains(s: String, t: String) -> Bool = s.__find(t, 0) >= 0
+
+fn String.starts_with(s: String, p: String) -> Bool =
+  p.len() <= s.len() && s.slice(0, p.len()) == p
+
+fn String.ends_with(s: String, p: String) -> Bool =
+  p.len() <= s.len() && s.slice(s.len() - p.len(), s.len()) == p
+
+fn String.to_int(s: String) -> Option[Int] =
+  if s.__is_int() { Some(s.__to_int()) } else { None }
+
+fn String.to_float(s: String) -> Option[Float] =
+  if s.__is_float() { Some(s.__to_float()) } else { None }
+
+fn String.split(s: String, sep: String) -> Array[String] =
+  if sep.len() == 0 { [s] } else { __split(s, sep, 0, []) }
+
+fn __split(s: String, sep: String, from: Int, acc: Array[String]) -> Array[String] = {
+  let i = s.__find(sep, from)
+  if i < 0 {
+    acc.push(s.slice(from, s.len()))
+  } else {
+    __split(s, sep, i + sep.len(), acc.push(s.slice(from, i)))
+  }
+}
+
+fn String.lines(s: String) -> Array[String] = {
+  let parts = s.split("\n")
+  let n = parts.len()
+  if n > 0 && parts[n - 1] == "" { parts.pop() } else { parts }
+}
+
+fn String.words(s: String) -> Array[String] =
+  s.split(" ").filter(fn(w) => w != "")
+
+fn String.repeat(s: String, n: Int) -> String = __repeat(s, n, "")
+
+fn __repeat(s: String, n: Int, acc: String) -> String =
+  if n <= 0 { acc } else { __repeat(s, n - 1, acc ++ s) }
+
+fn String.bytes(s: String) -> Array[Int] = Array.init(s.len(), fn(i) => s.byte(i))
+
+fn String.pad_left(s: String, width: Int) -> String = " ".repeat(width - s.len()) ++ s
+fn String.pad_right(s: String, width: Int) -> String = s ++ " ".repeat(width - s.len())
+
+fn Array.join(xs: Array[String], sep: String) -> String = __join(xs, sep, 0, "")
+
+fn __join(xs: Array[String], sep: String, i: Int, acc: String) -> String =
+  if i >= xs.len() { acc }
+  else if i == 0 { __join(xs, sep, 1, acc ++ xs[0]) }
+  else { __join(xs, sep, i + 1, acc ++ sep ++ xs[i]) }
+
+// ------------------------------------------------------------------ arrays
+
+fn range(from: Int, to: Int) -> Array[Int] = __range(from, to, Array.empty())
+
+fn __range(i: Int, to: Int, acc: Array[Int]) -> Array[Int] =
+  if i >= to { acc } else { __range(i + 1, to, acc.push(i)) }
+
+fn Array.is_empty(xs: Array[a]) -> Bool = xs.len() == 0
+
+fn Array.first(xs: Array[a]) -> Option[a] = if xs.len() == 0 { None } else { Some(xs[0]) }
+fn Array.last(xs: Array[a]) -> Option[a] = if xs.len() == 0 { None } else { Some(xs[xs.len() - 1]) }
+
+fn Array.init(n: Int, f: (Int) -> a) -> Array[a] = __init(0, n, f, Array.empty())
+
+fn __init(i: Int, n: Int, f: (Int) -> a, acc: Array[a]) -> Array[a] =
+  if i >= n { acc } else { __init(i + 1, n, f, acc.push(f(i))) }
+
+fn Array.map(xs: Array[a], f: (a) -> b) -> Array[b] = __map(xs, f, 0, Array.empty())
+
+fn __map(xs: Array[a], f: (a) -> b, i: Int, acc: Array[b]) -> Array[b] =
+  if i >= xs.len() { acc } else { __map(xs, f, i + 1, acc.push(f(xs[i]))) }
+
+fn Array.each(xs: Array[a], f: (a) -> ()) -> () = __each(xs, f, 0)
+
+fn __each(xs: Array[a], f: (a) -> (), i: Int) -> () =
+  if i < xs.len() {
+    f(xs[i])
+    __each(xs, f, i + 1)
+  }
+
+fn Array.filter(xs: Array[a], keep: (a) -> Bool) -> Array[a] = __filter(xs, keep, 0, Array.empty())
+
+fn __filter(xs: Array[a], keep: (a) -> Bool, i: Int, acc: Array[a]) -> Array[a] =
+  if i >= xs.len() { acc }
+  else {
+    let x = xs[i]
+    if keep(x) { __filter(xs, keep, i + 1, acc.push(x)) } else { __filter(xs, keep, i + 1, acc) }
+  }
+
+fn Array.fold(xs: Array[a], init: b, f: (b, a) -> b) -> b = __fold(xs, f, 0, init)
+
+fn __fold(xs: Array[a], f: (b, a) -> b, i: Int, acc: b) -> b =
+  if i >= xs.len() { acc } else { __fold(xs, f, i + 1, f(acc, xs[i])) }
+
+fn Array.sum(xs: Array[Int]) -> Int = __sum(xs, 0, 0)
+
+fn __sum(xs: Array[Int], i: Int, acc: Int) -> Int =
+  if i >= xs.len() { acc } else { __sum(xs, i + 1, acc + xs[i]) }
+
+fn Array.any(xs: Array[a], p: (a) -> Bool) -> Bool = __any(xs, p, 0)
+
+fn __any(xs: Array[a], p: (a) -> Bool, i: Int) -> Bool =
+  i < xs.len() && (p(xs[i]) || __any(xs, p, i + 1))
+
+fn Array.all(xs: Array[a], p: (a) -> Bool) -> Bool = !xs.any(fn(x) => !p(x))
+
+fn Array.find(xs: Array[a], p: (a) -> Bool) -> Option[a] = __find(xs, p, 0)
+
+fn __find(xs: Array[a], p: (a) -> Bool, i: Int) -> Option[a] =
+  if i >= xs.len() { None }
+  else {
+    let x = xs[i]
+    if p(x) { Some(x) } else { __find(xs, p, i + 1) }
+  }
+
+fn Array.contains(xs: Array[a], x: a) -> Bool = xs.any(fn(y) => y == x)
+
+fn Array.reverse(xs: Array[a]) -> Array[a] = __reverse(xs, 0, xs.len() - 1)
+
+fn __reverse(xs: Array[a], i: Int, j: Int) -> Array[a] =
+  if i >= j { xs } else { __reverse(xs.swap(i, j), i + 1, j - 1) }
+
+fn Array.zip(xs: Array[a], ys: Array[b]) -> Array[(a, b)] =
+  Array.init(Int.min(xs.len(), ys.len()), fn(i) => (xs[i], ys[i]))
+
+fn Array.enumerate(xs: Array[a]) -> Array[(Int, a)] = Array.init(xs.len(), fn(i) => (i, xs[i]))
+
+fn Array.flat_map(xs: Array[a], f: (a) -> Array[b]) -> Array[b] =
+  xs.fold(Array.empty(), fn(acc, x) => acc ++ f(x))
+
+/// Sorts in place when the array is not shared (an introsort-free quicksort
+/// with median-of-three pivots, then insertion sort for short runs).
+fn Array.sort_by(xs: Array[a], cmp: (a, a) -> Int) -> Array[a] = __qsort(xs, 0, xs.len() - 1, cmp)
+
+fn Array.sort(xs: Array[a]) -> Array[a] = xs.sort_by(fn(x, y) => compare(x, y))
+
+fn __qsort(xs: Array[a], lo: Int, hi: Int, cmp: (a, a) -> Int) -> Array[a] =
+  if hi - lo < 16 { __insertion(xs, lo + 1, hi, cmp) }
+  else {
+    let mid = lo + (hi - lo) / 2
+    let xs = __order(xs, lo, mid, cmp)
+    let xs = __order(xs, mid, hi, cmp)
+    let xs = __order(xs, lo, mid, cmp)
+    let pivot = xs[mid]
+    let (xs, p) = __partition(xs, lo, hi, pivot, cmp)
+    let xs = __qsort(xs, lo, p, cmp)
+    __qsort(xs, p + 1, hi, cmp)
+  }
+
+fn __order(xs: Array[a], i: Int, j: Int, cmp: (a, a) -> Int) -> Array[a] =
+  if cmp(xs[j], xs[i]) < 0 { xs.swap(i, j) } else { xs }
+
+// Hoare partition: returns `p` with xs[lo..=p] <= pivot <= xs[p+1..=hi].
+fn __partition(xs: Array[a], i: Int, j: Int, pivot: a, cmp: (a, a) -> Int) -> (Array[a], Int) = {
+  let i = __scan_up(xs, i, pivot, cmp)
+  let j = __scan_down(xs, j, pivot, cmp)
+  if i >= j { (xs, j) } else { __partition(xs.swap(i, j), i + 1, j - 1, pivot, cmp) }
+}
+
+fn __scan_up(xs: Array[a], i: Int, pivot: a, cmp: (a, a) -> Int) -> Int =
+  if cmp(xs[i], pivot) < 0 { __scan_up(xs, i + 1, pivot, cmp) } else { i }
+
+fn __scan_down(xs: Array[a], j: Int, pivot: a, cmp: (a, a) -> Int) -> Int =
+  if cmp(xs[j], pivot) > 0 { __scan_down(xs, j - 1, pivot, cmp) } else { j }
+
+fn __insertion(xs: Array[a], i: Int, hi: Int, cmp: (a, a) -> Int) -> Array[a] =
+  if i > hi { xs } else { __insertion(__sift(xs, i, cmp), i + 1, hi, cmp) }
+
+fn __sift(xs: Array[a], j: Int, cmp: (a, a) -> Int) -> Array[a] =
+  if j > 0 && cmp(xs[j], xs[j - 1]) < 0 { __sift(xs.swap(j, j - 1), j - 1, cmp) } else { xs }
+
+fn Array.to_list(xs: Array[a]) -> List[a] = __to_list(xs, xs.len() - 1, Nil)
+
+fn __to_list(xs: Array[a], i: Int, acc: List[a]) -> List[a] =
+  if i < 0 { acc } else { __to_list(xs, i - 1, Cons(xs[i], acc)) }
+
+// ------------------------------------------------------------------- lists
+
+fn List.is_empty(xs: List[a]) -> Bool = match xs { Nil => true, Cons(_, _) => false }
+
+fn List.len(xs: List[a]) -> Int = __list_len(xs, 0)
+
+fn __list_len(xs: List[a], n: Int) -> Int =
+  match xs {
+    Nil => n
+    Cons(_, rest) => __list_len(rest, n + 1)
+  }
+
+fn List.reverse(xs: List[a]) -> List[a] = __list_rev(xs, Nil)
+
+fn __list_rev(xs: List[a], acc: List[a]) -> List[a] =
+  match xs {
+    Nil => acc
+    Cons(x, rest) => __list_rev(rest, Cons(x, acc))
+  }
+
+fn List.map(xs: List[a], f: (a) -> b) -> List[b] =
+  match xs {
+    Nil => Nil
+    Cons(x, rest) => Cons(f(x), rest.map(f))
+  }
+
+fn List.filter(xs: List[a], keep: (a) -> Bool) -> List[a] =
+  match xs {
+    Nil => Nil
+    Cons(x, rest) => if keep(x) { Cons(x, rest.filter(keep)) } else { rest.filter(keep) }
+  }
+
+fn List.fold(xs: List[a], acc: b, f: (b, a) -> b) -> b =
+  match xs {
+    Nil => acc
+    Cons(x, rest) => rest.fold(f(acc, x), f)
+  }
+
+fn List.each(xs: List[a], f: (a) -> ()) -> () =
+  match xs {
+    Nil => ()
+    Cons(x, rest) => {
+      f(x)
+      rest.each(f)
+    }
+  }
+
+fn List.to_array(xs: List[a]) -> Array[a] = xs.fold(Array.empty(), fn(acc, x) => acc.push(x))
+
+// ---------------------------------------------------------------------- io
+
+fn read_line() -> Option[String] = {
+  let line = __read_line()
+  if __eof() { None } else { Some(line) }
+}
+
+fn read_file(path: String) -> Option[String] = {
+  let data = __read_file(path)
+  if __io_ok() { Some(data) } else { None }
+}
+
+fn args() -> Array[String] = Array.init(__argc(), fn(i) => __argv(i))
+
+// -------------------------------------------------------------------- maps
+
+// A persistent sorted map: an AVL tree. Keys are compared with `<`, so
+// they are Int, Float, String or Bool.
+type Map[k, v] = MapLeaf | MapNode(Map[k, v], k, v, Map[k, v], Int)
+
+fn Map.empty() -> Map[k, v] = MapLeaf
+
+fn Map.from_array(pairs: Array[(k, v)]) -> Map[k, v] =
+  pairs.fold(MapLeaf, fn(m, p) => {
+    let (key, val) = p
+    m.insert(key, val)
+  })
+
+fn Map.is_empty(m: Map[k, v]) -> Bool = match m { MapLeaf => true, MapNode(_, _, _, _, _) => false }
+
+fn Map.len(m: Map[k, v]) -> Int =
+  match m {
+    MapLeaf => 0
+    MapNode(l, _, _, r, _) => l.len() + 1 + r.len()
+  }
+
+fn Map.get(m: Map[k, v], key: k) -> Option[v] =
+  match m {
+    MapLeaf => None
+    MapNode(l, k2, v2, r, _) =>
+      if key < k2 { l.get(key) } else if key > k2 { r.get(key) } else { Some(v2) }
+  }
+
+fn Map.contains(m: Map[k, v], key: k) -> Bool = m.get(key).is_some()
+
+fn Map.insert(m: Map[k, v], key: k, val: v) -> Map[k, v] = m.update(key, val, fn(_) => val)
+
+/// Inserts `init` under `key`, or replaces the value `x` there with `f(x)`.
+fn Map.update(m: Map[k, v], key: k, init: v, f: (v) -> v) -> Map[k, v] =
+  match m {
+    MapLeaf => MapNode(MapLeaf, key, init, MapLeaf, 1)
+    MapNode(l, k2, v2, r, h) =>
+      if key < k2 { __balance(l.update(key, init, f), k2, v2, r) }
+      else if key > k2 { __balance(l, k2, v2, r.update(key, init, f)) }
+      else { MapNode(l, key, f(v2), r, h) }
+  }
+
+fn Map.remove(m: Map[k, v], key: k) -> Map[k, v] =
+  match m {
+    MapLeaf => MapLeaf
+    MapNode(l, k2, v2, r, _) =>
+      if key < k2 { __balance(l.remove(key), k2, v2, r) }
+      else if key > k2 { __balance(l, k2, v2, r.remove(key)) }
+      else {
+        match __min(r) {
+          None => l
+          Some((km, vm)) => __balance(l, km, vm, __remove_min(r))
+        }
+      }
+  }
+
+fn Map.to_array(m: Map[k, v]) -> Array[(k, v)] = __map_pairs(m, [])
+fn Map.keys(m: Map[k, v]) -> Array[k] = m.to_array().map(fn(p) => p.0)
+fn Map.values(m: Map[k, v]) -> Array[v] = m.to_array().map(fn(p) => p.1)
+
+fn Map.fold(m: Map[k, v], acc: b, f: (b, k, v) -> b) -> b =
+  match m {
+    MapLeaf => acc
+    MapNode(l, key, val, r, _) => r.fold(f(l.fold(acc, f), key, val), f)
+  }
+
+fn __map_pairs(m: Map[k, v], acc: Array[(k, v)]) -> Array[(k, v)] =
+  match m {
+    MapLeaf => acc
+    MapNode(l, key, val, r, _) => __map_pairs(r, __map_pairs(l, acc).push((key, val)))
+  }
+
+fn __height(m: Map[k, v]) -> Int = match m { MapLeaf => 0, MapNode(_, _, _, _, h) => h }
+
+fn __node(l: Map[k, v], key: k, val: v, r: Map[k, v]) -> Map[k, v] =
+  MapNode(l, key, val, r, 1 + Int.max(__height(l), __height(r)))
+
+fn __rotate_right(m: Map[k, v]) -> Map[k, v] =
+  match m {
+    MapNode(MapNode(a, k1, v1, b, _), k2, v2, c, _) => __node(a, k1, v1, __node(b, k2, v2, c))
+    other => other
+  }
+
+fn __rotate_left(m: Map[k, v]) -> Map[k, v] =
+  match m {
+    MapNode(a, k1, v1, MapNode(b, k2, v2, c, _), _) => __node(__node(a, k1, v1, b), k2, v2, c)
+    other => other
+  }
+
+fn __balance(l: Map[k, v], key: k, val: v, r: Map[k, v]) -> Map[k, v] = {
+  let d = __height(l) - __height(r)
+  if d > 1 {
+    let l2 = match l {
+      MapNode(ll, _, _, lr, _) if __height(lr) > __height(ll) => __rotate_left(l)
+      _ => l
+    }
+    __rotate_right(__node(l2, key, val, r))
+  } else if d < -1 {
+    let r2 = match r {
+      MapNode(rl, _, _, rr, _) if __height(rl) > __height(rr) => __rotate_right(r)
+      _ => r
+    }
+    __rotate_left(__node(l, key, val, r2))
+  } else {
+    __node(l, key, val, r)
+  }
+}
+
+fn __min(m: Map[k, v]) -> Option[(k, v)] =
+  match m {
+    MapLeaf => None
+    MapNode(MapLeaf, key, val, _, _) => Some((key, val))
+    MapNode(l, _, _, _, _) => __min(l)
+  }
+
+fn __remove_min(m: Map[k, v]) -> Map[k, v] =
+  match m {
+    MapLeaf => MapLeaf
+    MapNode(MapLeaf, _, _, r, _) => r
+    MapNode(l, key, val, r, _) => __balance(__remove_min(l), key, val, r)
+  }

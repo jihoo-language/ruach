@@ -1,0 +1,7 @@
+// error: `Rect` takes 2 arguments, but 1 was given
+
+type Shape = Circle(Float) | Rect(Float, Float)
+
+fn main() {
+  let r = Rect(1.0)
+}

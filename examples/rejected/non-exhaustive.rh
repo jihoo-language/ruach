@@ -1,0 +1,10 @@
+// error: this `match` does not handle Some(Cons(_, _))
+// A match must handle every value of its type.
+
+fn first_head(o: Option[List[Int]]) -> Int =
+  match o {
+    None => 0
+    Some(Nil) => 0
+  }
+
+fn main() {}
